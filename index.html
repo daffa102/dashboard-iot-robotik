@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nature Smart Home - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'nature-bone': '#F5F5F0',
+                        'nature-sage': '#E8EDE7',
+                        'nature-forest': '#2D3A3A',
+                        'nature-accent': '#C2D5BB',
+                        'nature-highlight': '#8FA888',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #F5F5F0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .card-shadow {
+            box-shadow: 0 10px 30px -15px rgba(45, 58, 58, 0.1);
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #2D3A3A 0%, #1A2424 100%);
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8 min-h-screen">
+    <div class="max-w-6xl mx-auto">
+
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-4">
+                <div
+                    class="w-12 h-12 bg-nature-forest rounded-xl flex items-center justify-center text-nature-bone shadow-lg">
+                    <i class="fas fa-leaf text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-nature-forest leading-tight">Terrarium OS</h1>
+                    <p class="text-xs text-nature-forest/50 font-medium">Sensor Monitoring</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <p class="text-[10px] text-nature-forest/40 font-bold uppercase tracking-widest hidden md:block">
+                    Updated: 13.35.48</p>
+                <button
+                    class="w-10 h-10 rounded-full bg-white border border-nature-forest/5 flex items-center justify-center text-nature-forest hover:bg-nature-sage transition-all">
+                    <i class="fas fa-rotate"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Hero Section (Status Monitoring) -->
+        <section
+            class="hero-gradient rounded-3xl p-6 md:p-8 mb-8 text-nature-bone relative overflow-hidden card-shadow">
+            <div class="flex justify-between items-start mb-10 relative z-10">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-white/10 backdrop-blur rounded-lg flex items-center justify-center">
+                        <i class="fas fa-wave-square"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-lg">Status Monitoring</h2>
+                        <p class="text-xs text-nature-bone/50">Real-time nature data</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 bg-nature-bone/10 backdrop-blur px-3 py-1.5 rounded-full">
+                    <div class="w-2 h-2 bg-nature-accent rounded-full animate-pulse"></div>
+                    <span class="text-[10px] font-bold uppercase tracking-tighter">Live Transmission</span>
+                </div>
+            </div>
+
+            <!-- Mini Metrics Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
+                <!-- Water -->
+                <div class="bg-white/5 backdrop-blur border border-white/10 p-4 rounded-2xl">
+                    <div class="flex justify-between items-start mb-4">
+                        <div
+                            class="w-8 h-8 bg-nature-accent rounded-lg flex items-center justify-center text-nature-forest text-sm">
+                            <i class="fas fa-droplet"></i>
+                        </div>
+                        <div class="w-1.5 h-1.5 bg-nature-accent rounded-full"></div>
+                    </div>
+                    <div class="text-2xl font-bold mb-1">80</div>
+                    <p class="text-[10px] text-nature-bone/40 font-bold uppercase tracking-widest">WQI • Air</p>
+                </div>
+                <!-- Air -->
+                <div class="bg-white/5 backdrop-blur border border-white/10 p-4 rounded-2xl">
+                    <div class="flex justify-between items-start mb-4">
+                        <div
+                            class="w-8 h-8 bg-nature-highlight rounded-lg flex items-center justify-center text-nature-bone text-sm">
+                            <i class="fas fa-wind"></i>
+                        </div>
+                        <div class="w-1.5 h-1.5 bg-nature-accent rounded-full"></div>
+                    </div>
+                    <div class="text-2xl font-bold mb-1">88</div>
+                    <p class="text-[10px] text-nature-bone/40 font-bold uppercase tracking-widest">AQI • Udara</p>
+                </div>
+                <!-- Soil -->
+                <div class="bg-white/5 backdrop-blur border border-white/10 p-4 rounded-2xl">
+                    <div class="flex justify-between items-start mb-4">
+                        <div
+                            class="w-8 h-8 border border-white/20 rounded-lg flex items-center justify-center text-nature-bone text-sm">
+                            <i class="fas fa-mountain"></i>
+                        </div>
+                        <div class="w-1.5 h-1.5 bg-nature-accent rounded-full"></div>
+                    </div>
+                    <div class="text-2xl font-bold mb-1">69</div>
+                    <p class="text-[10px] text-nature-bone/40 font-bold uppercase tracking-widest">SQI • Tanah</p>
+                </div>
+                <!-- Power -->
+                <div class="bg-white/5 backdrop-blur border border-white/10 p-4 rounded-2xl">
+                    <div class="flex justify-between items-start mb-4">
+                        <div
+                            class="w-8 h-8 border border-white/20 rounded-lg flex items-center justify-center text-nature-bone text-sm">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="w-1.5 h-1.5 bg-red-400 rounded-full"></div>
+                    </div>
+                    <div class="text-2xl font-bold mb-1">0</div>
+                    <p class="text-[10px] text-nature-bone/40 font-bold uppercase tracking-widest">W • Listrik</p>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-between items-center relative z-10">
+                <div class="flex items-center gap-2 text-xs text-nature-bone/60">
+                    <i class="fas fa-wifi"></i>
+                    <span>Koneksi stabil</span>
+                </div>
+                <div class="text-[10px] font-bold uppercase bg-white/5 px-2 py-1 rounded">Auto-refresh 10s</div>
+            </div>
+        </section>
+
+        <!-- Main Cards Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Water Card -->
+            <div
+                class="bg-white p-6 rounded-3xl card-shadow border border-nature-forest/5 group hover:border-nature-accent transition-all duration-300">
+                <div class="flex justify-between items-start mb-8">
+                    <div
+                        class="w-12 h-12 bg-nature-accent rounded-xl flex items-center justify-center text-nature-forest shadow-sm group-hover:scale-110 transition-transform">
+                        <i class="fas fa-droplet text-xl"></i>
+                    </div>
+                    <div class="w-3 h-3 bg-nature-accent rounded-full border-2 border-white"></div>
+                </div>
+                <p class="text-xs text-nature-forest/40 font-bold uppercase mb-2">Kualitas Air</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-3xl font-black text-nature-forest leading-none">80 WQI</span>
+                    <span class="text-[10px] font-black text-nature-forest/20 uppercase">WQI</span>
+                </div>
+            </div>
+
+            <!-- Air Card -->
+            <div
+                class="bg-white p-6 rounded-3xl card-shadow border border-nature-forest/5 group hover:border-nature-highlight transition-all duration-300">
+                <div class="flex justify-between items-start mb-8">
+                    <div
+                        class="w-12 h-12 bg-nature-sage rounded-xl flex items-center justify-center text-nature-forest shadow-sm group-hover:scale-110 transition-transform">
+                        <i class="fas fa-wind text-xl"></i>
+                    </div>
+                    <div class="w-3 h-3 bg-nature-accent rounded-full border-2 border-white"></div>
+                </div>
+                <p class="text-xs text-nature-forest/40 font-bold uppercase mb-2">Kualitas Udara</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-3xl font-black text-nature-forest leading-none">88 AQI</span>
+                    <span class="text-[10px] font-black text-nature-forest/20 uppercase">AQI</span>
+                </div>
+            </div>
+
+            <!-- Soil Card -->
+            <div
+                class="bg-white p-6 rounded-3xl card-shadow border border-nature-forest/5 group hover:opacity-100 transition-all duration-300">
+                <div class="flex justify-between items-start mb-8">
+                    <div
+                        class="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600 shadow-sm group-hover:scale-110 transition-transform">
+                        <i class="fas fa-mountain text-xl"></i>
+                    </div>
+                    <div class="w-3 h-3 bg-nature-accent rounded-full border-2 border-white"></div>
+                </div>
+                <p class="text-xs text-nature-forest/40 font-bold uppercase mb-2">Kualitas Tanah</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-3xl font-black text-nature-forest leading-none">69 SQI</span>
+                    <span class="text-[10px] font-black text-nature-forest/20 uppercase">SQI</span>
+                </div>
+            </div>
+
+            <!-- Power Card -->
+            <div
+                class="bg-white p-6 rounded-3xl card-shadow border border-nature-forest/5 group transition-all duration-300">
+                <div class="flex justify-between items-start mb-8">
+                    <div
+                        class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 shadow-sm group-hover:scale-110 transition-transform">
+                        <i class="fas fa-bolt text-xl"></i>
+                    </div>
+                    <div class="w-3 h-3 bg-red-400 rounded-full border-2 border-white"></div>
+                </div>
+                <p class="text-xs text-nature-forest/40 font-bold uppercase mb-2">Daya Listrik</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-3xl font-black text-nature-forest leading-none">0 W</span>
+                    <span class="text-[10px] font-black text-nature-forest/20 uppercase">W</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trend Section -->
+        <section class="bg-white rounded-3xl p-6 md:p-8 card-shadow border border-nature-forest/5">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+                <h2 class="text-lg font-bold text-nature-forest">Live Monitoring</h2>
+                <div class="flex bg-nature-bone p-1 rounded-xl">
+                    <button class="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-nature-forest/40">Per
+                        Menit</button>
+                    <button
+                        class="px-4 py-2 text-[10px] font-bold uppercase tracking-wider bg-nature-forest text-nature-bone rounded-lg shadow-md">Per
+                        Jam</button>
+                    <button class="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-nature-forest/40">Per
+                        Hari</button>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="flex flex-wrap gap-4 mb-10">
+                <div
+                    class="flex items-center gap-2 px-3 py-1.5 bg-nature-bone rounded-full border border-nature-forest/5">
+                    <div class="w-2.5 h-2.5 bg-nature-accent rounded-full"></div>
+                    <span class="text-[10px] font-bold text-nature-forest/60">Kualitas Air (WQI)</span>
+                </div>
+                <div
+                    class="flex items-center gap-2 px-3 py-1.5 bg-nature-bone rounded-full border border-nature-forest/5">
+                    <div class="w-2.5 h-2.5 bg-nature-highlight rounded-full"></div>
+                    <span class="text-[10px] font-bold text-nature-forest/60">Kualitas Udara (AQI)</span>
+                </div>
+                <div
+                    class="flex items-center gap-2 px-3 py-1.5 bg-nature-bone rounded-full border border-nature-forest/5">
+                    <div class="w-2.5 h-2.5 bg-purple-400 rounded-full"></div>
+                    <span class="text-[10px] font-bold text-nature-forest/60">Kualitas Tanah (SQI)</span>
+                </div>
+                <div
+                    class="flex items-center gap-2 px-3 py-1.5 bg-nature-bone rounded-full border border-nature-forest/5">
+                    <div class="w-2.5 h-2.5 bg-yellow-400 rounded-full"></div>
+                    <span class="text-[10px] font-bold text-nature-forest/60">Daya Listrik (W)</span>
+                </div>
+            </div>
+
+            <!-- SVG Chart Placeholder -->
+            <div
+                class="w-full h-64 bg-slate-50/50 rounded-2xl relative overflow-hidden border border-dashed border-nature-forest/10 flex items-end">
+                <svg viewBox="0 0 1000 100" preserveAspectRatio="none" class="w-full h-full opacity-60">
+                    <path d="M0,80 L100,75 L200,82 L300,78 L400,85 L500,80 L600,78 L700,82 L800,80 L900,85 L1000,80"
+                        fill="none" stroke="#C2D5BB" stroke-width="2" vector-effect="non-scaling-stroke" />
+                    <path d="M0,60 L100,62 L200,58 L300,65 L400,60 L500,62 L600,64 L700,60 L800,62 L900,58 L1000,60"
+                        fill="none" stroke="#8FA888" stroke-width="2" vector-effect="non-scaling-stroke" />
+                    <path d="M0,40 L100,42 L200,45 L300,43 L400,48 L500,44 L600,46 L700,44 L800,47 L900,45 L1000,48"
+                        fill="none" stroke="#A855F7" stroke-width="2" vector-effect="non-scaling-stroke" />
+                    <path d="M0,95 L1000,95" fill="none" stroke="#FACC15" stroke-width="1"
+                        vector-effect="non-scaling-stroke" />
+                </svg>
+                <div class="absolute inset-0 grid grid-cols-10 pointer-events-none">
+                    <div class="border-l border-nature-forest/5 h-full"></div>
+                    <div class="border-l border-nature-forest/5 h-full"></div>
+                    <div class="border-l border-nature-forest/5 h-full"></div>
+                    <div class="border-l border-nature-forest/5 h-full"></div>
+                    <div class="border-l border-nature-forest/5 h-full"></div>
+                    <div class="border-l border-nature-forest/5 h-full"></div>
+                    <div class="border-l border-nature-forest/5 h-full"></div>
+                    <div class="border-l border-nature-forest/5 h-full"></div>
+                    <div class="border-l border-nature-forest/5 h-full"></div>
+                    <div class="border-l border-nature-forest/5 h-full"></div>
+                </div>
+            </div>
+            <div
+                class="flex justify-between mt-4 text-[8px] font-black uppercase text-nature-forest/20 tracking-[0.2em]">
+                <span>07.42.24</span>
+                <span>07.46.29</span>
+                <span>07.53.00</span>
+                <span>08.00.54</span>
+            </div>
+        </section>
+
+    </div>
+</body>
+
+</html>

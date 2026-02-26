@@ -8,9 +8,9 @@ mysqli_report(MYSQLI_REPORT_OFF); // Matikan exception agar error bisa ditangkap
 
 // Ubah sesuai data di database Hosting
 $servername = "localhost"; 
-$username = "zakkalmy_water_drone"; 
-$password = "xvyhzmkZsr5fruZTnQsV"; 
-$dbname = "zakkalmy_water_drone"; 
+$username = "underwat_daffa_water"; 
+$password = "DDKgBr3WwYBeTkyg7Dm"; 
+$dbname = "underwat_daffa_water"; 
 
 // Connect to database
 $conn = new mysqli($servername, $username, $password, $dbname);

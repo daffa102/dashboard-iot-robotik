@@ -1,73 +1,109 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
-const char WIFI_SSID[] = "Wokwi-GUEST";        
-const char WIFI_PASSWORD[] = ""; 
+// 1. KONFIGURASI PIN SENSOR
+#define PH_PIN 34          // Sensor pH di GPIO 34 (ADC1)
+#define TURBIDITY_PIN 35    // Sensor Turbidity di GPIO 35 (ADC1)
+#define DS18B20_PIN 4      // Sensor Suhu di GPIO 4
 
-// Ganti demgan IP Address komputer Anda jika menggunakan XAMPP (contoh: 192.168.1.5)
-// Atau domain hosting Anda
-String HOST_NAME = "http://rapip.zakkal.my.id"; // Tanpa tanda / di akhir
-// String PATH_NAME = "/products/arduino.php";
-String queryString = "kualitas_air=80.5&tahan=150.2&udara=29.1&daya_listrik=95.0"; // Jangan pakai /public_html, langsung nama filenya saja jika ditaruh di root
+// 2. KONFIGURASI WIFI & SERVER
+const char* ssid     = "Andhika";     // GANTI INI
+const char* password = "kosjujun123"; // GANTI INI
+String serverName    = "http://daffa.underwaterdrone.my.id/api.php";
+
+// 3. INISIALISASI OBJEK
+LiquidCrystal_I2C lcd(0x27, 16, 2); 
+OneWire oneWire(DS18B20_PIN);
+DallasTemperature sensors(&oneWire);
+
+// Variabel Data
+float phValue, turbidityNTU, temperatureC;
+unsigned long lastTime = 0;
+unsigned long timerDelay = 5000; // Kirim data setiap 5 detik
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
+  
+  // Setup LCD
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Drone System");
+  lcd.setCursor(0, 1);
+  lcd.print("Connecting...");
 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.println("Connecting");
+  // Setup Sensor & WiFi
+  sensors.begin();
+  WiFi.begin(ssid, password);
+  
+  Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("");
-  Serial.print("Connected to WiFi network with IP Address: ");
-  Serial.println(WiFi.localIP());
+  Serial.println("\nConnected to WiFi!");
+  lcd.clear();
 }
 
 void loop() {
-  // Simulasi data sensor (Ganti dengan pembacaan sensor sebenarnya)
-  float kualitas_air = random(0, 100); 
-  float tahan = random(0, 500); 
-  float udara = random(20, 40); 
-  float daya_listrik = random(10, 100);
+  // --- A. PEMBACAAN SENSOR ---
+  
+  // 1. Baca pH (Sederhana dengan Kalibrasi)
+  int adcPH = analogRead(PH_PIN);
+  float voltagePH = adcPH * (3.3 / 4095.0);
+  phValue = 3.5 * voltagePH + 2.5; // Kalibrasi manual: Sesuaikan angka 2.5 agar pas 7.0 di air netral
 
-  // Periksa koneksi WiFi
-  if(WiFi.status() == WL_CONNECTED){
-    HTTPClient http;
+  // 2. Baca Turbidity
+  int adcTurb = analogRead(TURBIDITY_PIN);
+  float voltTurb = adcTurb * (3.3 / 4095.0);
+  // Rumus estimasi NTU (Semakin rendah voltase, semakin keruh)
+  turbidityNTU = -1120.4 * (voltTurb * voltTurb) + 5742.3 * voltTurb - 4352.9; 
+  if(turbidityNTU < 0) turbidityNTU = 0;
 
-    // Buat Query String
-    String queryString = "?kualitas_air=" + String(kualitas_air) 
-                       + "&tahan=" + String(tahan)
-                       + "&udara=" + String(udara)
-                       + "&daya_listrik=" + String(daya_listrik);
+  // 3. Baca Suhu
+  sensors.requestTemperatures(); 
+  temperatureC = sensors.getTempCByIndex(0);
 
-    // URL Lengkap
-    String serverPath = HOST_NAME + PATH_NAME + queryString;
-    
-    Serial.println("Request URL: " + serverPath);
+  // --- B. UPDATE TAMPILAN LCD ---
+  lcd.setCursor(0, 0);
+  lcd.print("PH:" + String(phValue, 1) + "  T:" + String(temperatureC, 1) + "C");
+  lcd.setCursor(0, 1);
+  lcd.print("Turb:" + String(turbidityNTU, 0) + " NTU   ");
 
-    http.begin(serverPath.c_str());
-    
-    // Kirim HTTP GET request
-    int httpCode = http.GET();
+  // --- C. KIRIM DATA KE DASHBOARD (SINKRON DENGAN api.php) ---
+  if ((millis() - lastTime) > timerDelay) {
+    if (WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      
+      // Susun URL sesuai variabel di api.php kamu
+      // kualitas_air = pH, tahan = Turbidity, udara = Suhu
+      String url = serverName + "?kualitas_air=" + String(phValue, 2) + 
+                   "&tahan=" + String(turbidityNTU, 2) + 
+                   "&udara=" + String(temperatureC, 2) + 
+                   "&daya_listrik=100"; // Baterai diasumsikan 100%
 
-    if (httpCode > 0) {
-      if (httpCode == HTTP_CODE_OK) {
+      Serial.println("Mengirim data ke: " + url);
+      
+      http.begin(url.c_str());
+      int httpResponseCode = http.GET();
+      
+      if (httpResponseCode > 0) {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
         String payload = http.getString();
-        Serial.println("Response: " + payload);
+        Serial.println("Server Response: " + payload);
       } else {
-        Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+        Serial.print("Error code: ");
+        Serial.println(httpResponseCode);
       }
+      http.end();
     } else {
-      Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+      Serial.println("WiFi Disconnected");
     }
-
-    http.end();
+    lastTime = millis();
   }
-  else {
-    Serial.println("WiFi Disconnected");
-  }
-
-  // Kirim data setiap 5 detik
-  delay(5000);
 }

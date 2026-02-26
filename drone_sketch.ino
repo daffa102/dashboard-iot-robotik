@@ -6,14 +6,15 @@
 // =============================================
 // 1. KONFIGURASI PIN SENSOR
 // =============================================
-#define PH_PIN        34  // Sensor pH di GPIO 34 (ADC1)
-#define TURBIDITY_PIN 35  // Sensor Turbidity di GPIO 35 (ADC1)
+#define PH_PIN        35  // Sensor pH di GPIO 35 (ADC1)
+#define TURBIDITY_PIN 34  // Sensor Turbidity di GPIO 34 (ADC1)
 
 // =============================================
-// 2. KONFIGURASI WIFI & SERVER
+// 2. KONFIGURASI WIFI & SERVER (Update Manual)
 // =============================================
-const char* ssid     = "DaffaDrone";       // Ganti dengan SSID WiFi kamu
-const char* password = "daffa123";   // Ganti dengan password WiFi kamu
+// PENTING: Perhatikan spasi jika masih gagal konek!
+const char* ssid     = "daffa";       
+const char* password = "daffa123";               // Password kosong sesuai info terakhir
 String serverName    = "http://daffa.underwaterdrone.my.id/api.php";
 
 // =============================================
@@ -23,13 +24,9 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 float phValue      = 0.0;
 float turbidityNTU = 0.0;
-
 unsigned long lastTime   = 0;
-unsigned long timerDelay = 5000; // Kirim data ke server setiap 5 detik
+unsigned long timerDelay = 5000; // Kirim data tiap 5 detik
 
-// =============================================
-// SETUP
-// =============================================
 void setup() {
   Serial.begin(115200);
 
@@ -39,85 +36,97 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print("Drone System");
   lcd.setCursor(0, 1);
-  lcd.print("Connecting...");
+  lcd.print("Scanning WiFi...");
 
-  // Koneksi WiFi
+  // WiFi Mode
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
+
+  Serial.println("\n--- Memulai Sistem Drone ---");
+  Serial.print("Mencoba konek ke: ");
+  Serial.println(ssid);
+
   WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi");
+
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
+
   Serial.println("\nConnected to WiFi!");
-  Serial.println("IP: " + WiFi.localIP().toString());
+  Serial.println("IP Address: " + WiFi.localIP().toString());
+  
   lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("WiFi Connected!");
+  delay(2000);
 }
 
-// =============================================
-// LOOP
-// =============================================
 void loop() {
 
-  // --- A. PEMBACAAN SENSOR ---
-
-  // 1. Baca pH
-  int   adcPH    = analogRead(PH_PIN);
+  // --- A. PEMBACAAN SENSOR PH ---
+  int adcPH = 0;
+  for(int i=0; i<10; i++) { adcPH += analogRead(PH_PIN); delay(10); } // Sampling agar stabil
+  adcPH = adcPH / 10;
+  
   float voltagePH = adcPH * (3.3 / 4095.0);
-  // Kalibrasi manual: ubah angka 2.5 agar pH terbaca 7.0 di air netral
-  phValue = 3.5 * voltagePH + 2.5;
+  
+  // Rumus Kalibrasi (Coba putar baut biru di modul pH jika masih 14.0)
+  // phValue = 3.5 * voltagePH + offset
+  phValue = 3.5 * voltagePH + 0.5; 
+  
+  if (phValue > 14.0) phValue = 14.0;
+  if (phValue < 0.0)  phValue = 0.0;
 
-  // 2. Baca Turbidity
-  int   adcTurb  = analogRead(TURBIDITY_PIN);
+  // --- B. PEMBACAAN SENSOR TURBIDITY ---
+  int adcTurb = analogRead(TURBIDITY_PIN);
   float voltTurb = adcTurb * (3.3 / 4095.0);
-  // Estimasi NTU: semakin rendah voltase → semakin keruh
+  
+  // Rumus estimasi NTU
   turbidityNTU = -1120.4 * (voltTurb * voltTurb) + 5742.3 * voltTurb - 4352.9;
   if (turbidityNTU < 0) turbidityNTU = 0;
 
-  // --- B. UPDATE TAMPILAN LCD ---
+  // --- C. UPDATE TAMPILAN (SERIAL & LCD) ---
+  Serial.println("\n--- Data Sensor ---");
+  Serial.print("Raw ADC PH: "); Serial.print(adcPH);
+  Serial.print(" | Volt PH: "); Serial.println(voltagePH);
+  Serial.print("pH Value  : "); Serial.println(phValue, 2);
+  Serial.print("Turbidity : "); Serial.print(turbidityNTU, 0); Serial.println(" NTU");
+
   lcd.setCursor(0, 0);
-  lcd.print("pH: " + String(phValue, 2) + "        "); // spasi untuk clear sisa karakter
+  lcd.print("pH: " + String(phValue, 2) + "        ");
   lcd.setCursor(0, 1);
-  lcd.print("Turb:" + String(turbidityNTU, 0) + " NTU   ");
+  lcd.print("Trb:" + String(turbidityNTU, 0) + " NTU    ");
 
-  // Juga tampilkan di Serial Monitor
-  Serial.println("=== Pembacaan Sensor ===");
-  Serial.println("pH        : " + String(phValue, 2));
-  Serial.println("Turbidity : " + String(turbidityNTU, 0) + " NTU");
-
-  // --- C. KIRIM DATA KE SERVER (setiap timerDelay ms) ---
+  // --- D. KIRIM DATA KE SERVER ---
   if ((millis() - lastTime) > timerDelay) {
     if (WiFi.status() == WL_CONNECTED) {
       HTTPClient http;
-
-      // Susun URL dengan parameter yang sesuai api.php
-      // kualitas_air = nilai pH
-      // tahan        = nilai Turbidity (NTU)
-      // daya_listrik = baterai (hardcoded 100 karena belum ada sensor baterai)
+      
+      // Susun URL
       String url = serverName
                    + "?kualitas_air=" + String(phValue, 2)
                    + "&tahan="        + String(turbidityNTU, 2)
                    + "&daya_listrik=100";
 
-      Serial.println("Mengirim ke: " + url);
-
+      Serial.println("Mengirim ke API...");
       http.begin(url.c_str());
       int httpResponseCode = http.GET();
 
       if (httpResponseCode > 0) {
-        Serial.println("HTTP Response: " + String(httpResponseCode));
-        Serial.println("Server: " + http.getString());
+        Serial.print("HTTP Success: ");
+        Serial.println(httpResponseCode);
       } else {
-        Serial.println("HTTP Error: " + String(httpResponseCode));
+        Serial.print("HTTP Error: ");
+        Serial.println(httpResponseCode);
       }
-
       http.end();
     } else {
-      Serial.println("WiFi Disconnected! Mencoba reconnect...");
       WiFi.reconnect();
     }
-
     lastTime = millis();
   }
 
-  delay(500); // Jeda kecil agar ADC stabil
+  delay(2000); // Tunggu 2 detik untuk pembacaan berikutnya
 }

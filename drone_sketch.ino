@@ -12,7 +12,7 @@
 // =============================================
 // 2. KONFIGURASI WIFI & SERVER
 // =============================================
-const char* ssid     = "Redmi Note 11";       // Ganti dengan SSID WiFi kamu
+const char* ssid     = "DaffaDrone";       // Ganti dengan SSID WiFi kamu
 const char* password = "daffa123";   // Ganti dengan password WiFi kamu
 String serverName    = "http://daffa.underwaterdrone.my.id/api.php";
 

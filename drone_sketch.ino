@@ -1,4 +1,3 @@
-// Finished by Daffa
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Wire.h>
@@ -75,7 +74,7 @@ void loop() {
   
   // Rumus Kalibrasi (Coba putar baut biru di modul pH jika masih 14.0)
   // phValue = 3.5 * voltagePH + offset
-  phValue = 3.5 * voltagePH + 0.5; 
+  phValue = 3.5 * voltagePH - 1.1; 
   
   if (phValue > 14.0) phValue = 14.0;
   if (phValue < 0.0)  phValue = 0.0;

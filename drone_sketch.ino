@@ -83,16 +83,23 @@ void loop() {
   int adcTurb = analogRead(TURBIDITY_PIN);
   float voltTurb = adcTurb * (3.3 / 4095.0);
   
-  // Rumus estimasi NTU
-  turbidityNTU = -1120.4 * (voltTurb * voltTurb) + 5742.3 * voltTurb - 4352.9;
-  if (turbidityNTU < 0) turbidityNTU = 0;
+  // Normalisasi: Karena sensor ditenagai 3.3V, kita asumsikan 3.3V = Jernih (0 NTU).
+  // Rumus asli didesain untuk 4.2V (5V power). Kita kalibrasi tegangannya di sini:
+  float voltNormalized = voltTurb * (4.2 / 3.3); 
+
+  // Rumus estimasi NTU (menggunakan volt yang sudah dinormalisasi)
+  turbidityNTU = -1120.4 * (voltNormalized * voltNormalized) + 5742.3 * voltNormalized - 4352.9;
+  
+  // Pengaman: Jika hasil minus atau di air jernih masih tinggi, kita paksa ke 0
+  if (turbidityNTU < 0 || voltTurb > 3.2) turbidityNTU = 0;
 
   // --- C. UPDATE TAMPILAN (SERIAL & LCD) ---
   Serial.println("\n--- Data Sensor ---");
-  Serial.print("Raw ADC PH: "); Serial.print(adcPH);
-  Serial.print(" | Volt PH: "); Serial.println(voltagePH);
-  Serial.print("pH Value  : "); Serial.println(phValue, 2);
-  Serial.print("Turbidity : "); Serial.print(turbidityNTU, 0); Serial.println(" NTU");
+  Serial.print("Raw ADC PH : "); Serial.print(adcPH);
+  Serial.print(" | Volt PH : "); Serial.println(voltagePH);
+  Serial.print("pH Value   : "); Serial.println(phValue, 2);
+  Serial.print("Volt Turb  : "); Serial.print(voltTurb); Serial.println(" V");
+  Serial.print("Turbidity  : "); Serial.print(turbidityNTU, 0); Serial.println(" NTU");
 
   lcd.setCursor(0, 0);
   lcd.print("pH: " + String(phValue, 2) + "        ");

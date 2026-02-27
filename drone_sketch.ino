@@ -83,15 +83,16 @@ void loop() {
   int adcTurb = analogRead(TURBIDITY_PIN);
   float voltTurb = adcTurb * (3.3 / 4095.0);
   
-  // Normalisasi: Karena sensor ditenagai 3.3V, kita asumsikan 3.3V = Jernih (0 NTU).
-  // Rumus asli didesain untuk 4.2V (5V power). Kita kalibrasi tegangannya di sini:
-  float voltNormalized = voltTurb * (4.2 / 3.3); 
+  // KALIBRASI KHUSUS: Hasil tes air galon Anda menunjukkan 1.59V = Jernih.
+  // Kita sesuaikan multiplier-nya agar 1.59V terbaca sebagai 4.2V di rumus.
+  float clearWaterVolt = 1.59; 
+  float voltNormalized = voltTurb * (4.2 / clearWaterVolt); 
 
   // Rumus estimasi NTU (menggunakan volt yang sudah dinormalisasi)
   turbidityNTU = -1120.4 * (voltNormalized * voltNormalized) + 5742.3 * voltNormalized - 4352.9;
   
-  // Pengaman: Jika hasil minus atau di air jernih masih tinggi, kita paksa ke 0
-  if (turbidityNTU < 0 || voltTurb > 3.2) turbidityNTU = 0;
+  // Pengaman: Jika hasil minus atau masih di air jernih (sekitar 1.59V), kita paksa ke 0
+  if (turbidityNTU < 0 || voltTurb >= (clearWaterVolt - 0.1)) turbidityNTU = 0;
 
   // --- C. UPDATE TAMPILAN (SERIAL & LCD) ---
   Serial.println("\n--- Data Sensor ---");

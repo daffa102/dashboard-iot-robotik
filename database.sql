@@ -11,14 +11,16 @@ USE underwat_daffa_water;
 -- LANGKAH 2: Buat tabel log sensor
 -- JIKA TABEL SUDAH ADA SEBELUMNYA (dengan kolom udara),
 -- jalankan perintah ALTER di bawah ini untuk menghapus kolom udara:
--- ALTER TABLE drone_logs DROP COLUMN udara;
+-- jalankan perintah ALTER di bawah ini untuk menambahkan kolom suhu:
+-- ALTER TABLE drone_logs ADD COLUMN suhu DECIMAL(10, 2) AFTER daya_listrik;
 
 CREATE TABLE IF NOT EXISTS drone_logs (
     id           INT AUTO_INCREMENT PRIMARY KEY,
     timestamp    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     kualitas_air DECIMAL(10, 2) COMMENT 'Nilai pH air (contoh: 7.20)',
     tahan        DECIMAL(10, 2) COMMENT 'Turbidity / Kekeruhan air dalam NTU',
-    daya_listrik DECIMAL(10, 2) COMMENT 'Level baterai drone dalam persen (%)'
+    daya_listrik DECIMAL(10, 2) COMMENT 'Level baterai drone dalam persen (%)',
+    suhu         DECIMAL(10, 2) COMMENT 'Suhu air dalam Celcius (°C)'
 );
 
 -- LANGKAH 3: (Opsional) Data dummy untuk testing awal

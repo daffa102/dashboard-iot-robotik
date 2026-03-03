@@ -21,17 +21,18 @@ if ($conn->connect_error) {
 
 // ============================================================
 // ENDPOINT 1: INSERT DATA DARI DRONE
-// Sensor: pH (kualitas_air) + Turbidity (tahan) + Baterai (daya_listrik)
-// Contoh: api.php?kualitas_air=7.20&tahan=312.50&daya_listrik=100
+// Sensor: pH (kualitas_air) + Turbidity (tahan) + Baterai (daya_listrik) + Suhu (suhu)
+// Contoh: api.php?kualitas_air=7.20&tahan=312.50&daya_listrik=100&suhu=25.5
 // ============================================================
-if (isset($_GET['kualitas_air']) && isset($_GET['tahan']) && isset($_GET['daya_listrik'])) {
-
-    $kualitas_air = floatval($_GET['kualitas_air']);
-    $tahan        = floatval($_GET['tahan']);
-    $daya_listrik = floatval($_GET['daya_listrik']);
-
-    $stmt = $conn->prepare("INSERT INTO drone_logs (kualitas_air, tahan, daya_listrik) VALUES (?, ?, ?)");
-    $stmt->bind_param("ddd", $kualitas_air, $tahan, $daya_listrik);
+    if (isset($_GET['kualitas_air']) && isset($_GET['tahan']) && isset($_GET['daya_listrik']) && isset($_GET['suhu'])) {
+    
+        $kualitas_air = floatval($_GET['kualitas_air']);
+        $tahan        = floatval($_GET['tahan']);
+        $daya_listrik = floatval($_GET['daya_listrik']);
+        $suhu         = floatval($_GET['suhu']);
+    
+        $stmt = $conn->prepare("INSERT INTO drone_logs (kualitas_air, tahan, daya_listrik, suhu) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("dddd", $kualitas_air, $tahan, $daya_listrik, $suhu);
 
     if ($stmt->execute()) {
         echo json_encode([
@@ -41,7 +42,8 @@ if (isset($_GET['kualitas_air']) && isset($_GET['tahan']) && isset($_GET['daya_l
             "data"    => [
                 "pH"          => $kualitas_air,
                 "turbidity"   => $tahan,
-                "battery"     => $daya_listrik
+                "battery"     => $daya_listrik,
+                "temperature" => $suhu
             ]
         ]);
     } else {
@@ -88,12 +90,15 @@ if (isset($_GET['kualitas_air']) && isset($_GET['tahan']) && isset($_GET['daya_l
                         AVG(tahan)        AS avg_tahan,
                         MAX(tahan)        AS max_tahan,
                         AVG(daya_listrik) AS avg_daya_listrik,
+                        AVG(suhu)         AS avg_suhu,
+                        MIN(suhu)         AS min_suhu,
+                        MAX(suhu)         AS max_suhu,
                         COUNT(*)          AS total_logs
                    FROM drone_logs
                    WHERE timestamp >= NOW() - INTERVAL $interval";
 
     // 10 data terbaru untuk tabel history
-    $sqlHistory = "SELECT id, timestamp, kualitas_air, tahan, daya_listrik
+    $sqlHistory = "SELECT id, timestamp, kualitas_air, tahan, daya_listrik, suhu
                    FROM drone_logs
                    WHERE timestamp >= NOW() - INTERVAL $interval
                    ORDER BY id DESC
@@ -152,7 +157,7 @@ if (isset($_GET['kualitas_air']) && isset($_GET['tahan']) && isset($_GET['daya_l
         "status"    => "error",
         "message"   => "Parameter tidak dikenali.",
         "endpoints" => [
-            "INSERT data drone" => "api.php?kualitas_air=7.2&tahan=312&daya_listrik=100",
+            "INSERT data drone" => "api.php?kualitas_air=7.2&tahan=312&daya_listrik=100&suhu=25.5",
             "GET latest data"   => "api.php?get_latest=true",
             "GET reports"       => "api.php?get_reports=true&period=daily|weekly|monthly",
             "GET history chart" => "api.php?get_history=true&limit=20"

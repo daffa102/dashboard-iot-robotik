@@ -2,12 +2,15 @@
 #include <HTTPClient.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 // =============================================
 // 1. KONFIGURASI PIN SENSOR
 // =============================================
 #define PH_PIN        35  // Sensor pH di GPIO 35 (ADC1)
 #define TURBIDITY_PIN 34  // Sensor Turbidity di GPIO 34 (ADC1)
+#define TEMP_PIN     4   // Sensor Suhu (DS18B20) di GPIO 4 (D4)
 
 // =============================================
 // 2. KONFIGURASI WIFI & SERVER (Update Manual)
@@ -21,9 +24,12 @@ String serverName    = "http://daffa.underwaterdrone.my.id/api.php";
 // 3. INISIALISASI OBJEK & VARIABEL
 // =============================================
 LiquidCrystal_I2C lcd(0x27, 16, 2);
+OneWire oneWire(TEMP_PIN);
+DallasTemperature sensors(&oneWire);
 
 float phValue      = 0.0;
 float turbidityNTU = 0.0;
+float temperatureC = 0.0;
 unsigned long lastTime   = 0;
 unsigned long timerDelay = 5000; // Kirim data tiap 5 detik
 
@@ -53,6 +59,9 @@ void setup() {
     delay(500);
     Serial.print(".");
   }
+
+  // Init Dallas Temperature
+  sensors.begin();
 
   Serial.println("\nConnected to WiFi!");
   Serial.println("IP Address: " + WiFi.localIP().toString());
@@ -94,16 +103,24 @@ void loop() {
   // Pengaman: Jika hasil minus atau masih di air jernih (sekitar 1.59V), kita paksa ke 0
   if (turbidityNTU < 0 || voltTurb >= (clearWaterVolt - 0.1)) turbidityNTU = 0;
 
-  // --- C. UPDATE TAMPILAN (SERIAL & LCD) ---
+  // --- C. PEMBACAAN SENSOR SUHU (DS18B20) ---
+  sensors.requestTemperatures(); 
+  temperatureC = sensors.getTempCByIndex(0);
+  
+  // Jika sensor tidak terdeteksi, set ke 0 agar tidak merusak chart
+  if(temperatureC == DEVICE_DISCONNECTED_C) temperatureC = 0;
+
+  // --- D. UPDATE TAMPILAN (SERIAL & LCD) ---
   Serial.println("\n--- Data Sensor ---");
   Serial.print("Raw ADC PH : "); Serial.print(adcPH);
   Serial.print(" | Volt PH : "); Serial.println(voltagePH);
   Serial.print("pH Value   : "); Serial.println(phValue, 2);
   Serial.print("Volt Turb  : "); Serial.print(voltTurb); Serial.println(" V");
   Serial.print("Turbidity  : "); Serial.print(turbidityNTU, 0); Serial.println(" NTU");
+  Serial.print("Temperature: "); Serial.print(temperatureC, 1); Serial.println(" C");
 
   lcd.setCursor(0, 0);
-  lcd.print("pH: " + String(phValue, 2) + "        ");
+  lcd.print("pH:" + String(phValue, 1) + " T:" + String(temperatureC, 1) + "C ");
   lcd.setCursor(0, 1);
   lcd.print("Trb:" + String(turbidityNTU, 0) + " NTU    ");
 
@@ -116,7 +133,8 @@ void loop() {
       String url = serverName
                    + "?kualitas_air=" + String(phValue, 2)
                    + "&tahan="        + String(turbidityNTU, 2)
-                   + "&daya_listrik=100";
+                   + "&daya_listrik=100"
+                   + "&suhu="         + String(temperatureC, 2);
 
       Serial.println("Mengirim ke API...");
       http.begin(url.c_str());

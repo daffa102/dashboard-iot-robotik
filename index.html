@@ -206,31 +206,36 @@
                 </div>
             </div>
 
-            <!-- Chart Container -->
-            <div class="p-8 rounded-2xl bg-white dark:bg-brand-card border border-zinc-200 dark:border-brand-border">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                    <div class="flex items-center gap-3">
-                        <div class="w-1.5 h-6 bg-brand-accent rounded-full"></div>
-                        <h3 class="text-xs font-bold uppercase tracking-widest">Historical Trend Sequence</h3>
+            <!-- Charts Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- pH Chart Container -->
+                <div
+                    class="p-8 rounded-2xl bg-white dark:bg-brand-card border border-zinc-200 dark:border-brand-border">
+                    <div class="flex justify-between items-center mb-8">
+                        <div class="flex items-center gap-3">
+                            <div class="w-1.5 h-6 bg-cyan-500 rounded-full"></div>
+                            <h3 class="text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-zinc-100">pH
+                                Level Trend</h3>
+                        </div>
                     </div>
-                    <!-- Legend -->
-                    <div class="flex flex-wrap gap-4 text-[10px] font-bold uppercase">
-                        <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 rounded-full bg-cyan-500"></div>
-                            <span class="dark:text-zinc-400">pH</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                            <span class="dark:text-zinc-400">Turbidity (NTU)</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 rounded-full bg-purple-500"></div>
-                            <span class="dark:text-zinc-400">Battery (%)</span>
-                        </div>
+                    <div class="h-[300px] w-full">
+                        <canvas id="phChart"></canvas>
                     </div>
                 </div>
-                <div class="h-[350px] w-full">
-                    <canvas id="trendChart"></canvas>
+
+                <!-- Turbidity Chart Container -->
+                <div
+                    class="p-8 rounded-2xl bg-white dark:bg-brand-card border border-zinc-200 dark:border-brand-border">
+                    <div class="flex justify-between items-center mb-8">
+                        <div class="flex items-center gap-3">
+                            <div class="w-1.5 h-6 bg-blue-500 rounded-full"></div>
+                            <h3 class="text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-zinc-100">
+                                Turbidity Trend (NTU)</h3>
+                        </div>
+                    </div>
+                    <div class="h-[300px] w-full">
+                        <canvas id="turbidityChart"></canvas>
+                    </div>
                 </div>
             </div>
         </section>
@@ -369,18 +374,47 @@
         }
 
         // Chart.js Implementation
-        const ctx = document.getElementById('trendChart').getContext('2d');
-        let trendChart;
+        let phChart, turbidityChart;
 
-        function initChart() {
+        function initCharts() {
             const isDark = document.documentElement.classList.contains('dark');
             const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
             const textColor = isDark ? '#71717a' : '#71717a';
 
-            const data = {
-                labels: Array.from({ length: 20 }, (_, i) => ''),
-                datasets: [
-                    {
+            // Common options
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: textColor, font: { size: 10 } }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: isDark ? '#18181b' : '#fff',
+                        titleColor: isDark ? '#fff' : '#000',
+                        bodyColor: isDark ? '#ccc' : '#444',
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        padding: 12,
+                        boxPadding: 6
+                    }
+                }
+            };
+
+            // pH Chart
+            phChart = new Chart(document.getElementById('phChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: Array.from({ length: 20 }, (_, i) => ''),
+                    datasets: [{
                         label: 'pH',
                         data: Array(20).fill(null),
                         borderColor: '#06b6d4',
@@ -389,8 +423,28 @@
                         tension: 0.4,
                         fill: true,
                         pointRadius: 0,
-                    },
-                    {
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        ...chartOptions.scales,
+                        y: {
+                            min: 0,
+                            max: 14,
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, font: { size: 10 }, stepSize: 2 }
+                        }
+                    }
+                }
+            });
+
+            // Turbidity Chart
+            turbidityChart = new Chart(document.getElementById('turbidityChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: Array.from({ length: 20 }, (_, i) => ''),
+                    datasets: [{
                         label: 'Turbidity (NTU)',
                         data: Array(20).fill(null),
                         borderColor: '#3b82f6',
@@ -399,55 +453,17 @@
                         tension: 0.4,
                         fill: true,
                         pointRadius: 0,
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: 'Battery (%)',
-                        data: Array(20).fill(null),
-                        borderColor: '#a855f7',
-                        backgroundColor: 'rgba(168,85,247,0.1)',
-                        borderWidth: 2,
-                        tension: 0.4,
-                        fill: true,
-                        pointRadius: 0,
-                    }
-                ]
-            };
-
-            trendChart = new Chart(ctx, {
-                type: 'line',
-                data: data,
+                    }]
+                },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        intersect: false,
-                        mode: 'index',
-                    },
+                    ...chartOptions,
                     scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: textColor, font: { size: 10 } }
-                        },
+                        ...chartOptions.scales,
                         y: {
+                            min: 0,
+                            suggestedMax: 3000,
                             grid: { color: gridColor },
                             ticks: { color: textColor, font: { size: 10 } }
-                        },
-                        y1: {
-                            position: 'right',
-                            display: false
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: isDark ? '#18181b' : '#fff',
-                            titleColor: isDark ? '#fff' : '#000',
-                            bodyColor: isDark ? '#ccc' : '#444',
-                            borderWidth: 1,
-                            borderColor: 'rgba(255,255,255,0.1)',
-                            padding: 12,
-                            boxPadding: 6
                         }
                     }
                 }
@@ -455,10 +471,9 @@
         }
 
         function updateChartTheme() {
-            if (trendChart) {
-                trendChart.destroy();
-                initChart();
-            }
+            if (phChart) phChart.destroy();
+            if (turbidityChart) turbidityChart.destroy();
+            initCharts();
         }
 
         // Fetch Real Data from API
@@ -482,15 +497,16 @@
                         document.getElementById('val-water').textContent = Math.floor(data.tahan);
                         document.getElementById('val-battery').textContent = Math.floor(data.daya_listrik);
 
-                        // Update Grafik (Trend Chart) — 3 dataset: pH, Turbidity, Battery
-                        if (trendChart) {
-                            trendChart.data.datasets[0].data.shift();
-                            trendChart.data.datasets[0].data.push(parseFloat(data.kualitas_air));
-                            trendChart.data.datasets[1].data.shift();
-                            trendChart.data.datasets[1].data.push(parseFloat(data.tahan));
-                            trendChart.data.datasets[2].data.shift();
-                            trendChart.data.datasets[2].data.push(parseFloat(data.daya_listrik));
-                            trendChart.update('none');
+                        // Update Grafik (Trend Chart)
+                        if (phChart) {
+                            phChart.data.datasets[0].data.shift();
+                            phChart.data.datasets[0].data.push(parseFloat(data.kualitas_air));
+                            phChart.update('none');
+                        }
+                        if (turbidityChart) {
+                            turbidityChart.data.datasets[0].data.shift();
+                            turbidityChart.data.datasets[0].data.push(parseFloat(data.tahan));
+                            turbidityChart.update('none');
                         }
 
                         // Reset stopwatch saat data baru berhasil diterima
@@ -612,7 +628,7 @@
             icon.classList.remove('animate-spin');
             lucide.createIcons();
         }
-        initChart();
+        initCharts();
         setInterval(fetchData, 3000);
         setInterval(() => fetchReports(document.querySelector('select')?.value || 'daily'), 30000);
         fetchData();

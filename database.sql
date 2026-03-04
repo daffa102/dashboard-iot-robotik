@@ -9,7 +9,7 @@ CREATE DATABASE IF NOT EXISTS underwat_daffa_water;
 USE underwat_daffa_water;
 
 -- LANGKAH 2: Buat tabel log sensor
--- JIKA TABEL SUDAH ADA SEBELUMNYA (dengan kolom udara),
+-- JIKA TABEL SUDAH ADA SEBELUMNYA (dengan kolom udara),   
 -- jalankan perintah ALTER di bawah ini untuk menghapus kolom udara:
 -- jalankan perintah ALTER di bawah ini untuk menambahkan kolom suhu:
 -- ALTER TABLE drone_logs ADD COLUMN suhu DECIMAL(10, 2) AFTER daya_listrik;

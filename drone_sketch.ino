@@ -60,6 +60,9 @@ void setup() {
     Serial.print(".");
   }
 
+  // Aktifkan Internal Pull-up (Karena tidak ada resistor fisik 4.7k)
+  pinMode(TEMP_PIN, INPUT_PULLUP);
+
   // Init Dallas Temperature
   sensors.begin();
 

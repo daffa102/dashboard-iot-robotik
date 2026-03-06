@@ -120,7 +120,8 @@
     <!-- Navigation Tabs -->
     <nav class="max-w-[1400px] mx-auto px-6 mt-6">
         <div class="flex gap-8 border-b border-zinc-200 dark:border-brand-border">
-            <button class="pb-3 text-xs font-bold tracking-widest uppercase transition-all tab-active">Live Monitoring</button>
+            <button class="pb-3 text-xs font-bold tracking-widest uppercase transition-all tab-active">Live
+                Monitoring</button>
         </div>
     </nav>
 
@@ -268,7 +269,8 @@
                     <div class="h-[300px] w-full relative flex items-center justify-center">
                         <canvas id="tempChart"></canvas>
                         <div class="absolute pt-10 text-center">
-                            <span class="block text-5xl font-bold text-zinc-900 dark:text-white" id="gauge-temp-val">0.0</span>
+                            <span class="block text-5xl font-bold text-zinc-900 dark:text-white"
+                                id="gauge-temp-val">0.0</span>
                             <span class="text-xs font-bold uppercase tracking-widest text-zinc-500">Celcius</span>
                         </div>
                     </div>
@@ -283,28 +285,35 @@
                             <h3 class="text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-zinc-100">
                                 Motor Control (Single Propeller)</h3>
                         </div>
-                        <span id="motor-status-badge" class="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-[10px] font-black rounded-full border border-zinc-200 dark:border-zinc-700 uppercase">Standby</span>
+                        <span id="motor-status-badge"
+                            class="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-[10px] font-black rounded-full border border-zinc-200 dark:border-zinc-700 uppercase">Standby</span>
                     </div>
-                    
+
                     <div class="grid grid-cols-2 gap-4">
-                        <button onclick="sendMotorCommand('START')" id="btn-motor-start" class="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all group">
-                            <i data-lucide="play" class="w-8 h-8 text-emerald-500 mb-2 group-hover:scale-110 transition-transform"></i>
-                            <span class="text-xs font-bold uppercase tracking-widest text-emerald-500">Start Engine</span>
+                        <button onclick="sendMotorCommand('START')" id="btn-motor-start"
+                            class="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all group">
+                            <i data-lucide="play"
+                                class="w-8 h-8 text-emerald-500 mb-2 group-hover:scale-110 transition-transform"></i>
+                            <span class="text-xs font-bold uppercase tracking-widest text-emerald-500">Start
+                                Engine</span>
                         </button>
-                        
-                        <button onclick="sendMotorCommand('STOP')" id="btn-motor-stop" class="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-red-500/20 bg-red-500/5 hover:bg-red-500/10 transition-all group">
-                            <i data-lucide="square" class="w-8 h-8 text-red-500 mb-2 group-hover:scale-110 transition-transform"></i>
+
+                        <button onclick="sendMotorCommand('STOP')" id="btn-motor-stop"
+                            class="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-red-500/20 bg-red-500/5 hover:bg-red-500/10 transition-all group">
+                            <i data-lucide="square"
+                                class="w-8 h-8 text-red-500 mb-2 group-hover:scale-110 transition-transform"></i>
                             <span class="text-xs font-bold uppercase tracking-widest text-red-500">Stop Engine</span>
                         </button>
                     </div>
-                    
-                    <p class="text-[10px] text-zinc-500 text-center mt-6 font-medium italic">Note: Propulsion only. Forward movement active when Start Engine is toggled.</p>
+
+                    <p class="text-[10px] text-zinc-500 text-center mt-6 font-medium italic">Note: Propulsion only.
+                        Forward movement active when Start Engine is toggled.</p>
                 </div>
             </div>
         </section>
 
-                </div>
-            </div>
+        </div>
+        </div>
         </section>
     </main>
 
@@ -494,29 +503,34 @@
                         // kualitas_air → pH Level
                         // tahan        → Water Turbidity (NTU)
                         // daya_listrik → Battery (%)
+                        // suhu         → Temperature
 
-                        document.getElementById('val-ph').textContent = parseFloat(data.kualitas_air).toFixed(1);
-                        document.getElementById('val-water').textContent = Math.floor(data.tahan);
-                        document.getElementById('val-battery').textContent = Math.floor(data.daya_listrik);
-                        document.getElementById('val-temp').textContent = parseFloat(data.suhu).toFixed(1);
+                        const phVal = parseFloat(data.kualitas_air) || 0;
+                        const turbVal = parseFloat(data.tahan) || 0;
+                        const battVal = parseFloat(data.daya_listrik) || 0;
+                        const tempVal = parseFloat(data.suhu) || 0;
+
+                        document.getElementById('val-ph').textContent = phVal.toFixed(1);
+                        document.getElementById('val-water').textContent = Math.floor(turbVal);
+                        document.getElementById('val-battery').textContent = Math.floor(battVal);
+                        document.getElementById('val-temp').textContent = tempVal.toFixed(1);
 
                         // Update Grafik (Trend Chart)
                         if (phChart) {
                             phChart.data.datasets[0].data.shift();
-                            phChart.data.datasets[0].data.push(parseFloat(data.kualitas_air));
+                            phChart.data.datasets[0].data.push(phVal);
                             phChart.update('none');
                         }
                         if (turbidityChart) {
                             turbidityChart.data.datasets[0].data.shift();
-                            turbidityChart.data.datasets[0].data.push(parseFloat(data.tahan));
+                            turbidityChart.data.datasets[0].data.push(turbVal);
                             turbidityChart.update('none');
                         }
                         if (tempChart) {
-                            const val = parseFloat(data.suhu);
                             const max = 50;
-                            tempChart.data.datasets[0].data = [val, Math.max(0, max - val)];
+                            tempChart.data.datasets[0].data = [tempVal, Math.max(0, max - tempVal)];
                             tempChart.update();
-                            document.getElementById('gauge-temp-val').textContent = val.toFixed(1);
+                            document.getElementById('gauge-temp-val').textContent = tempVal.toFixed(1);
                         }
 
                         // Reset stopwatch saat data baru berhasil diterima
@@ -555,7 +569,7 @@
             try {
                 const response = await fetch(`api.php?set_command=${cmd}`);
                 const result = await response.json();
-                
+
                 if (result.status === "success") {
                     updateMotorUI(cmd);
                 }
@@ -568,7 +582,7 @@
             const startBtn = document.getElementById('btn-motor-start');
             const stopBtn = document.getElementById('btn-motor-stop');
             const badge = document.getElementById('motor-status-badge');
-            
+
             if (cmd === 'START') {
                 startBtn.classList.add('border-emerald-500', 'bg-emerald-500/20');
                 stopBtn.classList.remove('border-red-500', 'bg-red-500/20');
@@ -589,7 +603,7 @@
                 if (result.status === "success") {
                     updateMotorUI(result.command);
                 }
-            } catch (e) {}
+            } catch (e) { }
         }
 
         // Initial check

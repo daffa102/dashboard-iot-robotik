@@ -4,158 +4,142 @@
 #include <LiquidCrystal_I2C.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <ESP32Servo.h> // Library untuk kontrol ESC/Servo pada ESP32
 
 // =============================================
-// 1. KONFIGURASI PIN SENSOR
+// 1. KONFIGURASI PIN & OFFSET
 // =============================================
-#define PH_PIN        35  // Sensor pH di GPIO 35 (ADC1)
-#define TURBIDITY_PIN 34  // Sensor Turbidity di GPIO 34 (ADC1)
-#define TEMP_PIN     4   // Sensor Suhu (DS18B20) di GPIO 4 (D4)
+#define PH_PIN        35  
+#define TURBIDITY_PIN 34  
+#define TEMP_PIN      4   
+#define MOTOR_PIN     13  
+
+const float PH_OFFSET = -1.1;
 
 // =============================================
-// 2. KONFIGURASI WIFI & SERVER (Update Manual)
+// 2. KONFIGURASI WIFI & SERVER
 // =============================================
-// PENTING: Perhatikan spasi jika masih gagal konek!
 const char* ssid     = "daffa";       
-const char* password = "daffa123";               // Password kosong sesuai info terakhir
+const char* password = "daffa123";               
 String serverName    = "http://daffa.underwaterdrone.my.id/api.php";
 
 // =============================================
-// 3. INISIALISASI OBJEK & VARIABEL
+// 3. INISIALISASI OBJEK
 // =============================================
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 OneWire oneWire(TEMP_PIN);
 DallasTemperature sensors(&oneWire);
-
-float phValue      = 0.0;
-float turbidityNTU = 0.0;
-float temperatureC = 0.0;
-unsigned long lastTime   = 0;
-unsigned long timerDelay = 5000; // Kirim data tiap 5 detik
+Servo thruster; // Objek untuk mengontrol ESC
 
 void setup() {
   Serial.begin(115200);
-
-  // Setup LCD
+  
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0);
   lcd.print("Drone System");
-  lcd.setCursor(0, 1);
-  lcd.print("Scanning WiFi...");
-
-  // WiFi Mode
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  delay(100);
-
-  Serial.println("\n--- Memulai Sistem Drone ---");
-  Serial.print("Mencoba konek ke: ");
-  Serial.println(ssid);
 
   WiFi.begin(ssid, password);
-
+  Serial.print("Connecting WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
+  Serial.println("\nWiFi Connected!");
 
-  // Aktifkan Internal Pull-up (Karena tidak ada resistor fisik 4.7k)
   pinMode(TEMP_PIN, INPUT_PULLUP);
-
-  // Init Dallas Temperature
   sensors.begin();
-
-  Serial.println("\nConnected to WiFi!");
-  Serial.println("IP Address: " + WiFi.localIP().toString());
+  
+  // --- INISIALISASI ESC (ARMING) ---
+  thruster.attach(MOTOR_PIN, 1000, 2000); // Attach pin dengan range pulsa 1000-2000us
+  thruster.writeMicroseconds(1500);       // Kirim sinyal NETRAL (Stop) untuk arming
+  Serial.println("ESC Arming... Please wait.");
   
   lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("WiFi Connected!");
-  delay(2000);
+  lcd.print("Arming ESC...");
+  delay(2000); // Tunggu 2 detik agar ESC mengenali sinyal netral (beeping berhenti)
+
+  lcd.clear();
+  lcd.print("Ready!");
+  delay(1000);
 }
 
 void loop() {
+  // --- A. BACA SENSOR SUHU ---
+  sensors.requestTemperatures();
+  float temp = sensors.getTempCByIndex(0);
+  if (temp == -127.00) temp = 0.0;
 
-  // --- A. PEMBACAAN SENSOR PH ---
-  int adcPH = 0;
-  for(int i=0; i<10; i++) { adcPH += analogRead(PH_PIN); delay(10); } // Sampling agar stabil
-  adcPH = adcPH / 10;
-  
-  float voltagePH = adcPH * (3.3 / 4095.0);
-  
-  // Rumus Kalibrasi (Coba putar baut biru di modul pH jika masih 14.0)
-  // phValue = 3.5 * voltagePH + offset
-  phValue = 3.5 * voltagePH - 1.1; 
-  
-  if (phValue > 14.0) phValue = 14.0;
-  if (phValue < 0.0)  phValue = 0.0;
+  // --- B. BACA SENSOR PH ---
+  int rawPH = analogRead(PH_PIN);
+  float voltPH = rawPH * (3.3 / 4095.0);
+  float ph = 3.5 * voltPH + PH_OFFSET;
+  if (ph > 14.0) ph = 14.0;
+  if (ph < 0.0) ph = 0.0;
 
-  // --- B. PEMBACAAN SENSOR TURBIDITY ---
-  int adcTurb = analogRead(TURBIDITY_PIN);
-  float voltTurb = adcTurb * (3.3 / 4095.0);
-  
-  // KALIBRASI KHUSUS: Hasil tes air galon Anda menunjukkan 1.59V = Jernih.
-  // Kita sesuaikan multiplier-nya agar 1.59V terbaca sebagai 4.2V di rumus.
-  float clearWaterVolt = 1.59; 
-  float voltNormalized = voltTurb * (4.2 / clearWaterVolt); 
+  // --- C. BACA SENSOR TURBIDITY ---
+  int rawTurb = analogRead(TURBIDITY_PIN);
+  float voltTurb = rawTurb * (3.3 / 4095.0);
+  float ntu = 0;
+  // Kalibrasi kasar berdasarkan voltase
+  if (voltTurb < 1.0) ntu = 3000;
+  else if (voltTurb > 2.5) ntu = 0;
+  else ntu = map(voltTurb * 100, 100, 250, 3000, 0);
 
-  // Rumus estimasi NTU (menggunakan volt yang sudah dinormalisasi)
-  turbidityNTU = -1120.4 * (voltNormalized * voltNormalized) + 5742.3 * voltNormalized - 4352.9;
-  
-  // Pengaman: Jika hasil minus atau masih di air jernih (sekitar 1.59V), kita paksa ke 0
-  if (turbidityNTU < 0 || voltTurb >= (clearWaterVolt - 0.1)) turbidityNTU = 0;
+  // --- D. POLLING PERINTAH MOTOR ---
+  checkMotorCommand();
 
-  // --- C. PEMBACAAN SENSOR SUHU (DS18B20) ---
-  sensors.requestTemperatures(); 
-  temperatureC = sensors.getTempCByIndex(0);
-  
-  // Jika sensor tidak terdeteksi, set ke 0 agar tidak merusak chart
-  if(temperatureC == DEVICE_DISCONNECTED_C) temperatureC = 0;
+  // --- E. KIRIM DATA KE API ---
+  sendDataToServer(ph, ntu, temp);
 
-  // --- D. UPDATE TAMPILAN (SERIAL & LCD) ---
-  Serial.println("\n--- Data Sensor ---");
-  Serial.print("Raw ADC PH : "); Serial.print(adcPH);
-  Serial.print(" | Volt PH : "); Serial.println(voltagePH);
-  Serial.print("pH Value   : "); Serial.println(phValue, 2);
-  Serial.print("Volt Turb  : "); Serial.print(voltTurb); Serial.println(" V");
-  Serial.print("Turbidity  : "); Serial.print(turbidityNTU, 0); Serial.println(" NTU");
-  Serial.print("Temperature: "); Serial.print(temperatureC, 1); Serial.println(" C");
-
+  // --- F. UPDATE LCD ---
+  lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("pH:" + String(phValue, 1) + " T:" + String(temperatureC, 1) + "C ");
+  lcd.print("PH:"); lcd.print(ph, 1);
+  lcd.print(" TMP:"); lcd.print(temp, 1);
   lcd.setCursor(0, 1);
-  lcd.print("Trb:" + String(turbidityNTU, 0) + " NTU    ");
+  lcd.print("TURB:"); lcd.print((int)ntu);
+  lcd.print(" NTU");
 
-  // --- D. KIRIM DATA KE SERVER ---
-  if ((millis() - lastTime) > timerDelay) {
-    if (WiFi.status() == WL_CONNECTED) {
-      HTTPClient http;
-      
-      // Susun URL
-      String url = serverName
-                   + "?kualitas_air=" + String(phValue, 2)
-                   + "&tahan="        + String(turbidityNTU, 2)
-                   + "&daya_listrik=100"
-                   + "&suhu="         + String(temperatureC, 2);
+  delay(3000);
+}
 
-      Serial.println("Mengirim ke API...");
-      http.begin(url.c_str());
-      int httpResponseCode = http.GET();
-
-      if (httpResponseCode > 0) {
-        Serial.print("HTTP Success: ");
-        Serial.println(httpResponseCode);
+void checkMotorCommand() {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    String url = serverName + "?get_command=true";
+    http.begin(url);
+    int httpCode = http.GET();
+    if (httpCode > 0) {
+      String payload = http.getString();
+      if (payload.indexOf("\"START\"") != -1) {
+        thruster.writeMicroseconds(1900); // Jalan Maju (Full Throttle)
+        Serial.println("Motor: START (PWM 1900)");
       } else {
-        Serial.print("HTTP Error: ");
-        Serial.println(httpResponseCode);
+        thruster.writeMicroseconds(1500); // Berhenti (Neutral)
+        Serial.println("Motor: STOP (PWM 1500)");
       }
-      http.end();
-    } else {
-      WiFi.reconnect();
     }
-    lastTime = millis();
+    http.end();
   }
+}
 
-  delay(2000); // Tunggu 2 detik untuk pembacaan berikutnya
+void sendDataToServer(float ph, float turb, float temp) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    // Note: 'tahan' digunakan untuk turbidity di dashboard
+    String url = serverName + "?kualitas_air=" + String(ph, 2) +
+                 "&tahan=" + String(turb, 2) +
+                 "&daya_listrik=100" +
+                 "&suhu=" + String(temp, 2);
+    
+    Serial.println("Sending data to dashboard...");
+    http.begin(url);
+    int httpCode = http.GET();
+    if (httpCode > 0) {
+      Serial.print("HTTP Success: ");
+      Serial.println(httpCode);
+    }
+    http.end();
+  }
 }

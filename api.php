@@ -68,86 +68,39 @@ if ($conn->connect_error) {
     }
 
 // ============================================================
-// ENDPOINT 3: LAPORAN RINGKASAN (tab Reports)
-// Contoh: api.php?get_reports=true&period=daily|weekly|monthly
+// ENDPOINT 3: KONTROL MOTOR (SET COMMAND)
+// Contoh: api.php?set_command=START|STOP
 // ============================================================
-} elseif (isset($_GET['get_reports'])) {
+} elseif (isset($_GET['set_command'])) {
 
-    $period = isset($_GET['period']) ? $_GET['period'] : 'daily';
-
-    switch ($period) {
-        case 'weekly':  $interval = "7 DAY";  break;
-        case 'monthly': $interval = "30 DAY"; break;
-        case 'daily':
-        default:        $interval = "1 DAY";  break;
+    $cmd = strtoupper($_GET['set_command']);
+    if (!in_array($cmd, ['START', 'STOP'])) {
+        die(json_encode(["status" => "error", "message" => "Command invalid"]));
     }
 
-    // Ringkasan statistik
-    $sqlSummary = "SELECT 
-                        AVG(kualitas_air) AS avg_kualitas_air,
-                        MIN(kualitas_air) AS min_ph,
-                        MAX(kualitas_air) AS max_ph,
-                        AVG(tahan)        AS avg_tahan,
-                        MAX(tahan)        AS max_tahan,
-                        AVG(daya_listrik) AS avg_daya_listrik,
-                        AVG(suhu)         AS avg_suhu,
-                        MIN(suhu)         AS min_suhu,
-                        MAX(suhu)         AS max_suhu,
-                        COUNT(*)          AS total_logs
-                   FROM drone_logs
-                   WHERE timestamp >= NOW() - INTERVAL $interval";
+    $stmt = $conn->prepare("UPDATE drone_commands SET command = ? WHERE id = 1");
+    $stmt->bind_param("s", $cmd);
 
-    // 10 data terbaru untuk tabel history
-    $sqlHistory = "SELECT id, timestamp, kualitas_air, tahan, daya_listrik, suhu
-                   FROM drone_logs
-                   WHERE timestamp >= NOW() - INTERVAL $interval
-                   ORDER BY id DESC
-                   LIMIT 10";
-
-    $resSummary = $conn->query($sqlSummary);
-    $resHistory = $conn->query($sqlHistory);
-
-    $summary = [];
-    $history = [];
-
-    if ($resSummary && $resSummary->num_rows > 0) {
-        $summary = $resSummary->fetch_assoc();
+    if ($stmt->execute()) {
+        echo json_encode(["status" => "success", "command" => $cmd]);
+    } else {
+        echo json_encode(["status" => "error", "message" => $stmt->error]);
     }
-
-    if ($resHistory && $resHistory->num_rows > 0) {
-        while ($row = $resHistory->fetch_assoc()) {
-            $history[] = $row;
-        }
-    }
-
-    echo json_encode([
-        "status"  => "success",
-        "period"  => $period,
-        "summary" => $summary,
-        "history" => $history
-    ]);
+    $stmt->close();
 
 // ============================================================
-// ENDPOINT 4: DATA HISTORIS UNTUK GRAFIK
-// Contoh: api.php?get_history=true&limit=20
+// ENDPOINT 4: POLLING COMMAND UNTUK DRONE
+// Contoh: api.php?get_command=true
 // ============================================================
-} elseif (isset($_GET['get_history'])) {
+} elseif (isset($_GET['get_command'])) {
 
-    $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
-    if ($limit > 100) $limit = 100;
-
-    $sql    = "SELECT * FROM drone_logs ORDER BY id DESC LIMIT $limit";
-    $result = $conn->query($sql);
-
-    $rows = [];
+    $result = $conn->query("SELECT command FROM drone_commands WHERE id = 1");
     if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $rows[] = $row;
-        }
-        $rows = array_reverse($rows);
+        $row = $result->fetch_assoc();
+        echo json_encode(["status" => "success", "command" => $row['command']]);
+    } else {
+        echo json_encode(["status" => "error", "message" => "No command found"]);
     }
-
-    echo json_encode(["status" => "success", "data" => $rows]);
 
 // ============================================================
 // DEFAULT: Tampilkan daftar endpoint yang tersedia
@@ -159,11 +112,11 @@ if ($conn->connect_error) {
         "endpoints" => [
             "INSERT data drone" => "api.php?kualitas_air=7.2&tahan=312&daya_listrik=100&suhu=25.5",
             "GET latest data"   => "api.php?get_latest=true",
-            "GET reports"       => "api.php?get_reports=true&period=daily|weekly|monthly",
-            "GET history chart" => "api.php?get_history=true&limit=20"
+            "SET command"       => "api.php?set_command=START|STOP",
+            "GET command"       => "api.php?get_command=true"
         ]
     ]);
 }
 
 $conn->close();
-?>
+?>

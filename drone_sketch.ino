@@ -19,8 +19,8 @@ const float PH_OFFSET = -1.1;
 // =============================================
 // 2. KONFIGURASI WIFI & SERVER
 // =============================================
-const char* ssid     = "daffa";       
-const char* password = "daffa123";               
+const char* ssid     = "Potpot";        
+const char* password = "marhaban";               
 String serverName    = "http://daffa.underwaterdrone.my.id/api.php";
 
 // =============================================
@@ -77,14 +77,28 @@ void loop() {
   if (ph > 14.0) ph = 14.0;
   if (ph < 0.0) ph = 0.0;
 
-  // --- C. BACA SENSOR TURBIDITY ---
+  // --- C. BACA SENSOR TURBIDITY (DIPERBAIKI) ---
   int rawTurb = analogRead(TURBIDITY_PIN);
   float voltTurb = rawTurb * (3.3 / 4095.0);
   float ntu = 0;
-  // Kalibrasi kasar berdasarkan voltase
-  if (voltTurb < 1.0) ntu = 3000;
-  else if (voltTurb > 2.5) ntu = 0;
-  else ntu = map(voltTurb * 100, 100, 250, 3000, 0);
+
+  // DEBUG: Cek voltase di Serial Monitor untuk kalibrasi lebih teliti
+  Serial.print("Turbidity Raw: "); Serial.print(rawTurb);
+  Serial.print(" | Voltage: "); Serial.println(voltTurb);
+
+  /* 
+     PERBAIKAN:
+     Jika air jernih menghasilkan ~2200 NTU di kode lama, berarti voltasenya ~1.4V.
+     Jadi sekarang kita set 1.4V sebagai batas "Jernih" (0 NTU).
+  */
+  if (voltTurb > 1.4) {
+    ntu = 0; // Sangat jernih
+  } else if (voltTurb < 0.5) {
+    ntu = 3000; // Sangat keruh
+  } else {
+    // Mapping dari 0.5V (3000 NTU) ke 1.4V (0 NTU)
+    ntu = map(voltTurb * 100, 50, 140, 3000, 0);
+  }
 
   // --- D. POLLING PERINTAH MOTOR ---
   checkMotorCommand();
@@ -127,7 +141,7 @@ void checkMotorCommand() {
 void sendDataToServer(float ph, float turb, float temp) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    // Note: 'tahan' digunakan untuk turbidity di dashboard
+    // 'tahan' digunakan untuk turbidity di dashboard
     String url = serverName + "?kualitas_air=" + String(ph, 2) +
                  "&tahan=" + String(turb, 2) +
                  "&daya_listrik=100" +
@@ -139,6 +153,9 @@ void sendDataToServer(float ph, float turb, float temp) {
     if (httpCode > 0) {
       Serial.print("HTTP Success: ");
       Serial.println(httpCode);
+    } else {
+      Serial.print("HTTP Error: ");
+      Serial.println(http.errorToString(httpCode).c_str());
     }
     http.end();
   }
